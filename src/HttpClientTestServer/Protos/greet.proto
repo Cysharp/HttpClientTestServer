@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+option csharp_namespace = "HttpClientTestServer";
+
+package greet;
+
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc SayHello (HelloRequest) returns (HelloReply);
+  rpc SayHelloSlow (HelloRequest) returns (HelloReply);
+  rpc SayHelloNever (HelloRequest) returns (HelloReply);
+  rpc SayHelloDuplex (stream HelloRequest) returns (stream HelloReply);
+  rpc SayHelloDuplexCompleteRandomly (stream HelloRequest) returns (stream HelloReply);
+  rpc SayHelloDuplexAbortRandomly (stream HelloRequest) returns (stream HelloReply);
+  rpc ResetByServer (ResetRequest) returns (ResetReply);
+  rpc EchoDuplex (stream EchoRequest) returns (stream EchoReply);
+}
+
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings.
+message HelloReply {
+  string message = 1;
+}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoReply {
+  string message = 1;
+}
+
+message ResetRequest {
+  int32 errorCode = 1;
+}
+
+message ResetReply {
+}
