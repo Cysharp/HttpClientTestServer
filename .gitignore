@@ -55,5 +55,6 @@ nunit-*.xml
 
 *.user
 
+.vs/
 .idea/
 .DS_Store
