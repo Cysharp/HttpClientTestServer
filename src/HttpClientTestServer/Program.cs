@@ -4,17 +4,17 @@ using HttpClientTestServer.Services;
 using HttpClientTestServer.SessionState;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateSlimBuilder(args);
+
+builder.Logging.AddSimpleConsole(options => options.SingleLine = true);
+builder.Services.AddGrpc();
+builder.Services.AddResponseCompression();
 
 if (!TryConfigureFromCommandLine(args, builder))
 {
     Environment.ExitCode = -1;
     return;
 }
-
-builder.Logging.AddSimpleConsole(options => options.SingleLine = true);
-builder.Services.AddGrpc();
-builder.Services.AddResponseCompression();
 
 var app = builder.Build();
 
@@ -73,19 +73,21 @@ static bool TryConfigureFromCommandLine(string[] args, WebApplicationBuilder bui
     var port = result.GetValue(optionPort);
     if (port is not null)
     {
+#pragma warning disable ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
+        var logger = builder.Logging.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+#pragma warning restore ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(port.Value, listenOptions =>
             {
-                if (result.GetValue(optionSecure))
+                var isSecure = result.GetValue(optionSecure);
+                var protocols = result.GetValue(optionProtocolVersion) ?? (isSecure ? HttpProtocols.Http1AndHttp2 : HttpProtocols.Http1);
+                logger.LogInformation("Configuring server on port {Port} (Secure: {Secure}, Protocol: {Protocol})", port.Value, isSecure, protocols);
+                if (isSecure)
                 {
                     listenOptions.UseHttps();
-                    listenOptions.Protocols = result.GetValue(optionProtocolVersion) ?? HttpProtocols.Http1AndHttp2;
                 }
-                else
-                {
-                    listenOptions.Protocols = result.GetValue(optionProtocolVersion) ?? HttpProtocols.Http1;
-                }
+                listenOptions.Protocols = protocols;
             });
         });
     }
