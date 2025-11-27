@@ -72,12 +72,9 @@ static bool TryConfigureFromCommandLine(string[] args, WebApplicationBuilder bui
     rootCommand.Options.Add(optionSecure);
 
     var result = rootCommand.Parse(args);
-    if (result.Errors.Any())
+    if (result.Action is not null)
     {
-        foreach (var error in result.Errors)
-        {
-            Console.Error.WriteLine($"Error: {error.Message}");
-        }
+        result.Invoke();
         return false;
     }
 
