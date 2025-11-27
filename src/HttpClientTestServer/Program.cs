@@ -1,10 +1,11 @@
-﻿using System.Collections.Concurrent;
-using System.CommandLine;
-using HttpClientTestServer.ConnectionState;
+﻿using HttpClientTestServer.ConnectionState;
 using HttpClientTestServer.Endpoint;
 using HttpClientTestServer.Services;
 using HttpClientTestServer.SessionState;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using System.Collections.Concurrent;
+using System.CommandLine;
+using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
@@ -12,7 +13,10 @@ builder.Logging.AddSimpleConsole(options => options.SingleLine = true);
 builder.Services.AddConnectionState();
 builder.Services.AddSessionState();
 builder.Services.AddGrpc();
-builder.Services.AddResponseCompression();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
 
 if (!TryConfigureFromCommandLine(args, builder))
 {
@@ -85,6 +89,10 @@ static bool TryConfigureFromCommandLine(string[] args, WebApplicationBuilder bui
 #pragma warning restore ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
         builder.WebHost.ConfigureKestrel(options =>
         {
+            options.ConfigureHttpsDefaults(options =>
+            {
+                options.ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"), null);
+            });
             options.ListenAnyIP(port.Value, listenOptions =>
             {
                 var isSecure = result.GetValue(optionSecure);
