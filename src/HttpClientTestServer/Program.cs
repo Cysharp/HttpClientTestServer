@@ -1,4 +1,6 @@
-﻿using System.CommandLine;
+﻿using System.Collections.Concurrent;
+using System.CommandLine;
+using HttpClientTestServer.ConnectionState;
 using HttpClientTestServer.Endpoint;
 using HttpClientTestServer.Services;
 using HttpClientTestServer.SessionState;
@@ -7,6 +9,8 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.Logging.AddSimpleConsole(options => options.SingleLine = true);
+builder.Services.AddConnectionState();
+builder.Services.AddSessionState();
 builder.Services.AddGrpc();
 builder.Services.AddResponseCompression();
 
@@ -28,6 +32,9 @@ app.Use((ctx, next) =>
 // SessionState
 app.UseMiddleware<SessionStateMiddleware>();
 app.MapSessionState();
+
+// ConnectionState
+app.MapConnectionState();
 
 // HTTP/1 and HTTP/2
 app.MapAppEndpoints();
@@ -88,6 +95,7 @@ static bool TryConfigureFromCommandLine(string[] args, WebApplicationBuilder bui
                     listenOptions.UseHttps();
                 }
                 listenOptions.Protocols = protocols;
+                listenOptions.UseConnectionState();
             });
         });
     }
