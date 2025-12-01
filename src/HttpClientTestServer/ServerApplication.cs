@@ -72,11 +72,6 @@ public class ServerApplication : IAsyncDisposable
 
     }
 
-    public void ConfigureForConsoleMode()
-    {
-        builder.Logging.AddSimpleConsole(options => options.SingleLine = true);
-    }
-
     public void ConfigureBuilder(Action<WebApplicationBuilder> configure)
     {
         _configureBuilders.Add(configure);
@@ -111,6 +106,14 @@ public class ServerApplication : IAsyncDisposable
         _appLifetime.ApplicationStopped.Register(() => _appStopped.SetResult());
 
         await _waitForAppStarted.Task;
+    }
+
+    public void Shutdown()
+    {
+        if (_appLifetime is not null && _runningTask is not null)
+        {
+            _appLifetime.StopApplication();
+        }
     }
 
     public async ValueTask DisposeAsync()
