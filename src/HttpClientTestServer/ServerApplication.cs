@@ -2,6 +2,8 @@
 using HttpClientTestServer.Endpoint;
 using HttpClientTestServer.Services;
 using HttpClientTestServer.SessionState;
+using Microsoft.Extensions.Options;
+using System.Security.Cryptography.X509Certificates;
 
 namespace HttpClientTestServer;
 
@@ -21,6 +23,17 @@ public class ServerApplication : IAsyncDisposable
     public ServerApplication(string[] args)
     {
         builder = WebApplication.CreateSlimBuilder(args);
+    }
+
+    private void ConfigureKestrelDefaults()
+    {
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.ConfigureHttpsDefaults(options =>
+            {
+                options.ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"), null);
+            });
+        });
     }
 
     private void ConfigureBuilderDefaults()
@@ -80,6 +93,7 @@ public class ServerApplication : IAsyncDisposable
     public async Task StartAsync()
     {
         ConfigureBuilderDefaults();
+        ConfigureKestrelDefaults();
 
         foreach (var c in _configureBuilders)
         {

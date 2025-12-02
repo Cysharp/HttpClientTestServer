@@ -49,10 +49,6 @@ static bool TryConfigureFromCommandLine(string[] args, ServerApplication server)
 #pragma warning restore ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
             builder.WebHost.ConfigureKestrel(options =>
             {
-                options.ConfigureHttpsDefaults(options =>
-                {
-                    options.ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"), null);
-                });
                 options.ListenAnyIP(port.Value, listenOptions =>
                 {
                     var isSecure = result.GetValue(optionSecure);
