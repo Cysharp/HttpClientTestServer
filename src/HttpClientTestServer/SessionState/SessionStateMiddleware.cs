@@ -4,7 +4,7 @@ namespace HttpClientTestServer.SessionState;
 
 public class SessionStateMiddleware
 {
-    private const string SessionStateKey = "SessionState";
+    public const string SessionStateKey = "SessionState";
     public const string SessionStateHeaderKey = "x-test-session-id";
 
     private readonly RequestDelegate _next;

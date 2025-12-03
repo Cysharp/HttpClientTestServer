@@ -8,7 +8,7 @@ public static class SessionStateEndpointRouteBuilderExtensions
     {
         builder.MapGet("/session-state", (HttpContext ctx, string id, string key) =>
         {
-            var sessionStates = ctx.RequestServices.GetRequiredKeyedService<ConcurrentDictionary<string, ConcurrentDictionary<string, object>>>(SessionStateMiddleware.SessionStateHeaderKey);
+            var sessionStates = ctx.RequestServices.GetRequiredKeyedService<ConcurrentDictionary<string, ConcurrentDictionary<string, object>>>(SessionStateMiddleware.SessionStateKey);
             if (sessionStates.TryGetValue(id, out var items))
             {
                 if (items.TryGetValue(key, out var value))

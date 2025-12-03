@@ -6,7 +6,7 @@ public static class SessionStateServiceCollectionExtensions
 {
     public static IServiceCollection AddSessionState(this IServiceCollection services)  
     {
-        services.AddKeyedSingleton(SessionStateMiddleware.SessionStateHeaderKey, new ConcurrentDictionary<string, ConcurrentDictionary<string, object>>());
+        services.AddKeyedSingleton(SessionStateMiddleware.SessionStateKey, new ConcurrentDictionary<string, ConcurrentDictionary<string, object>>());
         return services;
     }
 }
