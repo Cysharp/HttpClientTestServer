@@ -2,5 +2,6 @@
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
   </Folder>
+  <Project Path="src/HttpClientTestServer.Launcher/HttpClientTestServer.Launcher.csproj" Id="629914e4-f8b9-4739-bf18-cefcd27008ad" />
   <Project Path="src/HttpClientTestServer/HttpClientTestServer.csproj" />
 </Solution>
