@@ -1,9 +1,8 @@
-﻿using HttpClientTestServer;
+using HttpClientTestServer;
 using HttpClientTestServer.ConnectionState;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System.CommandLine;
 using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 
 await using var server = new ServerApplication(args);
 server.ConfigureBuilder(builder =>

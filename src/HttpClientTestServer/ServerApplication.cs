@@ -1,4 +1,4 @@
-﻿using HttpClientTestServer.ConnectionState;
+using HttpClientTestServer.ConnectionState;
 using HttpClientTestServer.Endpoint;
 using HttpClientTestServer.Services;
 using HttpClientTestServer.SessionState;
@@ -44,6 +44,10 @@ public class ServerApplication : IAsyncDisposable
         builder.Services.AddResponseCompression(options =>
         {
             options.EnableForHttps = true;
+        });
+        builder.Services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.TypeInfoResolverChain.Insert(0, HttpClientTestServerJsonSerializerContext.Default);
         });
     }
 
