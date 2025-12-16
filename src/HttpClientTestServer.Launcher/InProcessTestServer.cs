@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace HttpClientTestServer.Launcher;
 
-internal class InProcessTestServer : ITestServer
+public class InProcessTestServer : ITestServer
 {
     private readonly ServerApplication _server;
 

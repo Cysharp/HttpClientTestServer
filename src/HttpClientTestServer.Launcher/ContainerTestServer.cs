@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HttpClientTestServer.Launcher;
 
-internal class ContainerTestServer : ITestServer
+public class ContainerTestServer : ITestServer
 {
     private const string DockerImage = "ghcr.io/cysharp/httpclienttestserver:main";
 
