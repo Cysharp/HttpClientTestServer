@@ -3,7 +3,7 @@ using System.Net.Sockets;
 
 namespace HttpClientTestServer.Launcher;
 
-internal class TestServerHelper
+public class TestServerHelper
 {
     private static readonly HashSet<int> _usedPortInSession = new HashSet<int>();
 

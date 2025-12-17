@@ -20,12 +20,13 @@ public class ContainerTestServer : ITestServer
 
     public int Port { get; }
     public bool IsSecure { get; }
+    public Task Stopped => _appTask;
 
     public string BaseUri => $"{(IsSecure ? "https" : "http")}://localhost:{Port}";
 
-    private ContainerTestServer(int port, TestServerListenMode listenMode, ILoggerProvider? loggerProvider, TestServerOptions? options, CancellationToken cancellationToken)
+    private ContainerTestServer(TestServerListenMode listenMode, ILoggerProvider? loggerProvider, TestServerOptions? options, CancellationToken cancellationToken)
     {
-        Port = port;
+        Port = options?.Port ?? TestServerHelper.GetUnusedEphemeralPort();
         IsSecure = listenMode is TestServerListenMode.SecureHttp1Only or
             TestServerListenMode.SecureHttp2Only or
             TestServerListenMode.SecureHttp1AndHttp2;
@@ -51,7 +52,7 @@ public class ContainerTestServer : ITestServer
 
         _logger = (loggerProvider ?? NullLoggerProvider.Instance).CreateLogger(nameof(ContainerTestServer));
 
-        _logger.LogInformation($"[{DateTime.Now}][{GetType().Name}] Server starting... (port={port}; protocol={protocols}; secure={IsSecure})");
+        _logger.LogInformation($"[{DateTime.Now}][{GetType().Name}] Server starting... (port={Port}; protocol={protocols}; secure={IsSecure})");
         _container = new ContainerBuilder()
             .WithImage(DockerImage)
             .WithCommand(new[]
@@ -64,7 +65,7 @@ public class ContainerTestServer : ITestServer
                 .Concat(_listeningOnUnixDomainSocket ? ["--uds", options?.UnixDomainSocketPath ?? ""] : [])
                 .ToArray()
             )
-            .WithPortBinding(port, 80)
+            .WithPortBinding(Port, 80)
             .Build();
         _appTask = _container.StartAsync(cancellationToken);
 
@@ -75,7 +76,7 @@ public class ContainerTestServer : ITestServer
                 var tcpClient = new TcpClient();
                 try
                 {
-                    await tcpClient.ConnectAsync("localhost", port, cancellationToken);
+                    await tcpClient.ConnectAsync("localhost", Port, cancellationToken);
                     break;
                 }
                 catch
@@ -89,8 +90,7 @@ public class ContainerTestServer : ITestServer
 
     public static async Task<ITestServer> LaunchAsync(TestServerListenMode listenMode, ILoggerProvider? loggerProvider = null, CancellationToken shutdownToken = default, TestServerOptions? options = default)
     {
-        var port = TestServerHelper.GetUnusedEphemeralPort();
-        var server = new ContainerTestServer(port, listenMode, loggerProvider, options, shutdownToken);
+        var server = new ContainerTestServer(listenMode, loggerProvider, options, shutdownToken);
         await server._waitForServerStartedTask.WaitAsync(shutdownToken);
 
         shutdownToken.Register(() =>

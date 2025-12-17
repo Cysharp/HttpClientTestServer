@@ -1,25 +1,19 @@
-using HttpClientTestServer;
-using HttpClientTestServer.ConnectionState;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System.CommandLine;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Authentication;
+using HttpClientTestServer.Launcher;
 
-await using var server = new ServerApplication(args);
-server.ConfigureBuilder(builder =>
-{
-    builder.Logging.AddSimpleConsole(options => options.SingleLine = true);
-});
-
-if (!TryConfigureFromCommandLine(args, server))
+if (!TryConfigureFromCommandLine(args, out var serverOptions))
 {
     Environment.ExitCode = -1;
     return;
 }
 
-await server.StartAsync();
+await using var server = await InProcessTestServer.LaunchAsync(serverOptions);
 await server.Stopped;
 
-static bool TryConfigureFromCommandLine(string[] args, ServerApplication server)
+static bool TryConfigureFromCommandLine(string[] args, [NotNullWhen(true)] out TestServerOptions? serverOptions)
 {
     var rootCommand = new RootCommand();
     var optionProtocolVersion = new Option<HttpProtocols?>("--protocol") { Description = "HTTP protocol version" };
@@ -37,63 +31,23 @@ static bool TryConfigureFromCommandLine(string[] args, ServerApplication server)
     if (result.Action is not null)
     {
         result.Invoke();
+        serverOptions = null;
         return false;
     }
 
     var udsPath = result.GetValue(optionUnixDomainSocket);
-    var port = result.GetValue(optionPort);
-    if (udsPath is not null)
-    {
-        server.ConfigureBuilder(builder =>
-        {
-#pragma warning disable ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
-            var logger = builder.Logging.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-#pragma warning restore ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
-            builder.WebHost.ConfigureKestrel(options =>
-            {
-                options.ListenUnixSocket(udsPath, listenOptions =>
-                {
-                    var protocols = result.GetValue(optionProtocolVersion) ?? HttpProtocols.Http1;
-                    logger.LogInformation("Configuring server on Unix Domain Socket ({Path}) (Protocol: {Protocol})", udsPath, protocols);
-                    listenOptions.Protocols = protocols;
-                    listenOptions.UseConnectionState();
-                });
+    var port = result.GetValue(optionPort) ?? 8080;
+    var isSecure = result.GetValue(optionSecure);
+    var protocols = result.GetValue(optionProtocolVersion) ?? (isSecure ? HttpProtocols.Http1AndHttp2 : HttpProtocols.Http1);
+    var sslProtocols = result.GetValue(optionTlsVersion);
 
-                // hyperlocal uses the 'unix' scheme and passes the URI to hyper. As a result, the ':scheme' header in the request is set to 'unix'.
-                // By default, Kestrel does not accept non-HTTP schemes. To allow non-HTTP schemes, we need to set 'AllowAlternateSchemes' to true.
-                options.AllowAlternateSchemes = true;  
-            });
-        });
-    }
-    
-    if (port is not null)
+    serverOptions = new TestServerOptions(protocols, isSecure)
     {
-        server.ConfigureBuilder(builder =>
-        {
-#pragma warning disable ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
-            var logger = builder.Logging.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-#pragma warning restore ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
-            builder.WebHost.ConfigureKestrel(options =>
-            {
-                options.ListenAnyIP(port.Value, listenOptions =>
-                {
-                    var isSecure = result.GetValue(optionSecure);
-                    var protocols = result.GetValue(optionProtocolVersion) ?? (isSecure ? HttpProtocols.Http1AndHttp2 : HttpProtocols.Http1);
-                    var sslProtocols = result.GetValue(optionTlsVersion) ?? SslProtocols.None;
-                    logger.LogInformation("Configuring server on port {Port} (Secure: {Secure}, Protocol: {Protocol}, SslProtocols: {SslProtocols})", port.Value, isSecure, protocols, sslProtocols);
-                    if (isSecure)
-                    {
-                        listenOptions.UseHttps(options =>
-                        {
-                            options.SslProtocols = sslProtocols;
-                        });
-                    }
-                    listenOptions.Protocols = protocols;
-                    listenOptions.UseConnectionState();
-                });
-            });
-        });
-    }
-
+        Port = port,
+        IsSecure = isSecure,
+        SslProtocols = sslProtocols,
+        UnixDomainSocketPath = udsPath,
+        LocalhostOnly = false,
+    };
     return true;
 }
