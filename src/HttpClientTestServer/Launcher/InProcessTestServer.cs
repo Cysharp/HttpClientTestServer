@@ -1,10 +1,8 @@
 using System.Diagnostics;
 using System.Security.Authentication;
 using HttpClientTestServer.ConnectionState;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 
 namespace HttpClientTestServer.Launcher;
 
@@ -55,7 +53,8 @@ public class InProcessTestServer : ITestServer
                 }
                 else
                 {
-                    logger.LogInformation("Configuring server on port {Port} (Secure: {Secure}, Protocol: {Protocol}, SslProtocols: {SslProtocols})", Port, IsSecure, protocols, sslProtocols);
+                    logger.LogInformation("Configuring server on port {Port} (Secure: {Secure}, Protocol: {Protocol}, SslProtocols: {SslProtocols}, EnableClientCertificateValidation: {EnableClientCertificateValidation})",
+                        Port, IsSecure, protocols, sslProtocols, testServerOptions.EnableClientCertificateValidation);
                     if (testServerOptions.LocalhostOnly)
                     {
                         options.ListenLocalhost(Port, ConfigureHttpListenOptions);
@@ -69,6 +68,15 @@ public class InProcessTestServer : ITestServer
                 options.ConfigureHttpsDefaults(options =>
                 {
                     options.SslProtocols = sslProtocols;
+
+                    if (testServerOptions.EnableClientCertificateValidation)
+                    {
+                        options.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
+                        options.ClientCertificateValidation = (certificate2, chain, policyError) =>
+                        {
+                            return certificate2.Subject == "CN=client.example.com";
+                        };
+                    }
                 });
             });
             
@@ -127,6 +135,7 @@ public record TestServerOptions(HttpProtocols HttpProtocols, bool IsSecure)
     public string? UnixDomainSocketPath { get; init; }
     public int? Port { get; init; }
     public bool LocalhostOnly { get; init; } = true;
+    public bool EnableClientCertificateValidation { get; init; } = false;
 
     public static TestServerOptions CreateFromListenMode(TestServerListenMode listenMode)
     {

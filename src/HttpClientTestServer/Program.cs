@@ -21,6 +21,7 @@ static bool TryConfigureFromCommandLine(string[] args, [NotNullWhen(true)] out T
     var optionSecure = new Option<bool>("--secure", "-s") { Description = "Enable HTTPS" };
     var optionTlsVersion = new Option<SslProtocols?>("--tls") { Description = "TLS version (Default setting is None. None means the OS chooses the best protocol.)" };
     var optionUnixDomainSocket = new Option<string?>("--uds") { Description = "Unix Domain Socket path" };
+    var optionEnableClientCertificateValidation = new Option<bool?>("--enable-client-cert-validation") { Description = "Enable client certificate validation" };
     rootCommand.Options.Add(optionProtocolVersion);
     rootCommand.Options.Add(optionPort);
     rootCommand.Options.Add(optionSecure);
@@ -40,6 +41,7 @@ static bool TryConfigureFromCommandLine(string[] args, [NotNullWhen(true)] out T
     var isSecure = result.GetValue(optionSecure);
     var protocols = result.GetValue(optionProtocolVersion) ?? (isSecure ? HttpProtocols.Http1AndHttp2 : HttpProtocols.Http1);
     var sslProtocols = result.GetValue(optionTlsVersion);
+    var enableClientCertificateValidation = result.GetValue(optionEnableClientCertificateValidation) ?? false;
 
     serverOptions = new TestServerOptions(protocols, isSecure)
     {
@@ -48,6 +50,7 @@ static bool TryConfigureFromCommandLine(string[] args, [NotNullWhen(true)] out T
         SslProtocols = sslProtocols,
         UnixDomainSocketPath = udsPath,
         LocalhostOnly = false,
+        EnableClientCertificateValidation = enableClientCertificateValidation,
     };
     return true;
 }

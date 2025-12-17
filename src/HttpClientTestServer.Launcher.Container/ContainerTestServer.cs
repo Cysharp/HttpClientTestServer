@@ -52,6 +52,7 @@ public class ContainerTestServer : ITestServer
                 }
                 .Concat(IsSecure ? ["--secure"] : [])
                 .Concat(_listeningOnUnixDomainSocket ? ["--uds", options.UnixDomainSocketPath ?? ""] : [])
+                .Concat(options.EnableClientCertificateValidation ? ["--enable-client-certificate-validation"] : [])
                 .ToArray()
             )
             .WithPortBinding(Port, 80)
