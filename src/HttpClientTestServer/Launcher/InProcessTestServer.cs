@@ -123,7 +123,6 @@ public class InProcessTestServer : ITestServer
 
 public record TestServerOptions(HttpProtocols HttpProtocols, bool IsSecure)
 {
-    public bool IsSecure { get; init; }
     public SslProtocols? SslProtocols { get; init; }
     public string? UnixDomainSocketPath { get; init; }
     public int? Port { get; init; }

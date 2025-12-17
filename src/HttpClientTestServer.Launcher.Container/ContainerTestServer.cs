@@ -2,7 +2,6 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -24,24 +23,14 @@ public class ContainerTestServer : ITestServer
 
     public string BaseUri => $"{(IsSecure ? "https" : "http")}://localhost:{Port}";
 
-    private ContainerTestServer(TestServerListenMode listenMode, ILoggerProvider? loggerProvider, TestServerOptions? options, CancellationToken cancellationToken)
+    private ContainerTestServer(TestServerOptions options, ILoggerProvider? loggerProvider, CancellationToken cancellationToken)
     {
-        Port = options?.Port ?? TestServerHelper.GetUnusedEphemeralPort();
-        IsSecure = listenMode is TestServerListenMode.SecureHttp1Only or
-            TestServerListenMode.SecureHttp2Only or
-            TestServerListenMode.SecureHttp1AndHttp2;
+        Port = options.Port ?? TestServerHelper.GetUnusedEphemeralPort();
+        IsSecure = options.IsSecure;
 
-        _listeningOnUnixDomainSocket = options?.UnixDomainSocketPath != null;
-        var protocols = listenMode switch
-        {
-            TestServerListenMode.InsecureHttp1Only => HttpProtocols.Http1,
-            TestServerListenMode.InsecureHttp2Only => HttpProtocols.Http2,
-            TestServerListenMode.SecureHttp1Only => HttpProtocols.Http1,
-            TestServerListenMode.SecureHttp2Only => HttpProtocols.Http2,
-            TestServerListenMode.SecureHttp1AndHttp2 => HttpProtocols.Http1AndHttp2,
-            _ => throw new NotSupportedException(),
-        };
-        var sslProtocols = options?.SslProtocols ?? SslProtocols.Tls13;
+        _listeningOnUnixDomainSocket = options.UnixDomainSocketPath != null;
+        var protocols = options.HttpProtocols;
+        var sslProtocols = options.SslProtocols ?? SslProtocols.Tls13;
 
         // Workaround Docker API version mismatch (client newer than daemon).
         // If DOCKER_API_VERSION not already set, pin to daemon max (1.43) to allow negotiation.
@@ -62,7 +51,7 @@ public class ContainerTestServer : ITestServer
                     "--tls", sslProtocols.ToString()
                 }
                 .Concat(IsSecure ? ["--secure"] : [])
-                .Concat(_listeningOnUnixDomainSocket ? ["--uds", options?.UnixDomainSocketPath ?? ""] : [])
+                .Concat(_listeningOnUnixDomainSocket ? ["--uds", options.UnixDomainSocketPath ?? ""] : [])
                 .ToArray()
             )
             .WithPortBinding(Port, 80)
@@ -88,9 +77,9 @@ public class ContainerTestServer : ITestServer
         });
     }
 
-    public static async Task<ITestServer> LaunchAsync(TestServerListenMode listenMode, ILoggerProvider? loggerProvider = null, CancellationToken shutdownToken = default, TestServerOptions? options = default)
+    public static async Task<ITestServer> LaunchAsync(TestServerOptions options, ILoggerProvider? loggerProvider = null, CancellationToken shutdownToken = default)
     {
-        var server = new ContainerTestServer(listenMode, loggerProvider, options, shutdownToken);
+        var server = new ContainerTestServer(options, loggerProvider, shutdownToken);
         await server._waitForServerStartedTask.WaitAsync(shutdownToken);
 
         shutdownToken.Register(() =>
