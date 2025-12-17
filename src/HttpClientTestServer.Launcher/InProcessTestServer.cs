@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Authentication;
+using HttpClientTestServer.ConnectionState;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
@@ -9,11 +10,14 @@ namespace HttpClientTestServer.Launcher;
 public class InProcessTestServer : ITestServer
 {
     private readonly ServerApplication _server;
+    private readonly bool _listeningOnUnixDomainSocket;
 
     public int Port { get; }
     public bool IsSecure { get; }
 
-    public string BaseUri => $"{(IsSecure ? "https" : "http")}://localhost:{Port}";
+    public string BaseUri => _listeningOnUnixDomainSocket
+        ? "http://localhost"
+        : $"{(IsSecure ? "https" : "http")}://localhost:{Port}";
 
     private InProcessTestServer(int port, TestServerListenMode listenMode, ILoggerProvider? loggerProvider, TestServerOptions? testServerOptions)
     {
@@ -22,46 +26,63 @@ public class InProcessTestServer : ITestServer
             TestServerListenMode.SecureHttp2Only or
             TestServerListenMode.SecureHttp1AndHttp2;
 
+        _listeningOnUnixDomainSocket = testServerOptions?.UnixDomainSocketPath != null;
         _server = new ServerApplication([]);
-
-        if (testServerOptions is not null)
-        {
-            if (testServerOptions.SslProtocols is { } sslProtocols)
-            {
-                _server.ConfigureBuilder(builder =>
-                {
-                    builder.WebHost.ConfigureKestrel(options =>
-                    {
-                        options.ConfigureHttpsDefaults(options =>
-                        {
-                            options.SslProtocols = sslProtocols;
-                        });
-                    });
-                });
-            }
-        }
-
+        
         _server.ConfigureBuilder(builder =>
         {
             builder.WebHost.ConfigureKestrel(options =>
             {
-                options.ListenLocalhost(port, listenOptions =>
+                if (testServerOptions?.UnixDomainSocketPath is { } unixDomainSocketPath)
                 {
-                    listenOptions.Protocols = listenMode switch
+                    options.ListenUnixSocket(unixDomainSocketPath, listenOptions =>
                     {
-                        TestServerListenMode.InsecureHttp1Only => HttpProtocols.Http1,
-                        TestServerListenMode.InsecureHttp2Only => HttpProtocols.Http2,
-                        TestServerListenMode.SecureHttp1Only => HttpProtocols.Http1,
-                        TestServerListenMode.SecureHttp2Only => HttpProtocols.Http2,
-                        TestServerListenMode.SecureHttp1AndHttp2 => HttpProtocols.Http1AndHttp2,
-                        _ => throw new NotSupportedException(),
-                    };
+                        listenOptions.Protocols = listenMode switch
+                        {
+                            TestServerListenMode.InsecureHttp1Only => HttpProtocols.Http1,
+                            TestServerListenMode.InsecureHttp2Only => HttpProtocols.Http2,
+                            TestServerListenMode.SecureHttp1Only => HttpProtocols.Http1,
+                            TestServerListenMode.SecureHttp2Only => HttpProtocols.Http2,
+                            //TestServerListenMode.SecureHttp1AndHttp2 => HttpProtocols.Http1AndHttp2,
+                            _ => throw new NotSupportedException(),
+                        };
+                        
+                        listenOptions.UseConnectionState();
+                    });
+                    // hyperlocal uses the 'unix' scheme and passes the URI to hyper. As a result, the ':scheme' header in the request is set to 'unix'.
+                    // By default, Kestrel does not accept non-HTTP schemes. To allow non-HTTP schemes, we need to set 'AllowAlternateSchemes' to true.
+                    options.AllowAlternateSchemes = true;
+                }
+                else
+                {
+                    options.ListenLocalhost(port, listenOptions =>
+                    {
+                        listenOptions.Protocols = listenMode switch
+                        {
+                            TestServerListenMode.InsecureHttp1Only => HttpProtocols.Http1,
+                            TestServerListenMode.InsecureHttp2Only => HttpProtocols.Http2,
+                            TestServerListenMode.SecureHttp1Only => HttpProtocols.Http1,
+                            TestServerListenMode.SecureHttp2Only => HttpProtocols.Http2,
+                            TestServerListenMode.SecureHttp1AndHttp2 => HttpProtocols.Http1AndHttp2,
+                            _ => throw new NotSupportedException(),
+                        };
 
-                    if (IsSecure)
+                        if (IsSecure)
+                        {
+                            listenOptions.UseHttps();
+                        }
+
+                        listenOptions.UseConnectionState();
+                    });
+                }
+                
+                if (testServerOptions?.SslProtocols is { } sslProtocols)
+                {
+                    options.ConfigureHttpsDefaults(options =>
                     {
-                        listenOptions.UseHttps();
-                    }
-                });
+                        options.SslProtocols = sslProtocols;
+                    });
+                }
             });
             if (loggerProvider is not null)
             {
@@ -101,7 +122,7 @@ public class InProcessTestServer : ITestServer
     }
 }
 
-public record TestServerOptions(SslProtocols? SslProtocols);
+public record TestServerOptions(SslProtocols? SslProtocols, string? UnixDomainSocketPath);
 
 public enum TestServerListenMode
 {

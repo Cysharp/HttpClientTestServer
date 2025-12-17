@@ -16,6 +16,7 @@ public class ContainerTestServer : ITestServer
     private readonly Task _appTask;
     private readonly Task _waitForServerStartedTask;
     private readonly ILogger _logger;
+    private readonly bool _listeningOnUnixDomainSocket;
 
     public int Port { get; }
     public bool IsSecure { get; }
@@ -29,6 +30,7 @@ public class ContainerTestServer : ITestServer
             TestServerListenMode.SecureHttp2Only or
             TestServerListenMode.SecureHttp1AndHttp2;
 
+        _listeningOnUnixDomainSocket = options?.UnixDomainSocketPath != null;
         var protocols = listenMode switch
         {
             TestServerListenMode.InsecureHttp1Only => HttpProtocols.Http1,
@@ -53,11 +55,15 @@ public class ContainerTestServer : ITestServer
         _container = new ContainerBuilder()
             .WithImage(DockerImage)
             .WithCommand(new[]
-            {
-                "--port", "80",
-                "--protocol", protocols.ToString(),
-                "--tls", sslProtocols.ToString()
-            }.Concat(IsSecure ? ["--secure"] : []).ToArray())
+                {
+                    "--port", "80",
+                    "--protocol", protocols.ToString(),
+                    "--tls", sslProtocols.ToString()
+                }
+                .Concat(IsSecure ? ["--secure"] : [])
+                .Concat(_listeningOnUnixDomainSocket ? ["--uds", options?.UnixDomainSocketPath ?? ""] : [])
+                .ToArray()
+            )
             .WithPortBinding(port, 80)
             .Build();
         _appTask = _container.StartAsync(cancellationToken);
