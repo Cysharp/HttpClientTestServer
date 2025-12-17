@@ -26,10 +26,12 @@ static bool TryConfigureFromCommandLine(string[] args, ServerApplication server)
     var optionPort = new Option<int?>("--port", "-p") { Description = "Port number" };
     var optionSecure = new Option<bool>("--secure", "-s") { Description = "Enable HTTPS" };
     var optionTlsVersion = new Option<SslProtocols?>("--tls") { Description = "TLS version (Default setting is None. None means the OS chooses the best protocol.)" };
+    var optionUnixDomainSocket = new Option<string?>("--uds") { Description = "Unix Domain Socket path" };
     rootCommand.Options.Add(optionProtocolVersion);
     rootCommand.Options.Add(optionPort);
     rootCommand.Options.Add(optionSecure);
     rootCommand.Options.Add(optionTlsVersion);
+    rootCommand.Options.Add(optionUnixDomainSocket);
 
     var result = rootCommand.Parse(args);
     if (result.Action is not null)
@@ -38,7 +40,32 @@ static bool TryConfigureFromCommandLine(string[] args, ServerApplication server)
         return false;
     }
 
+    var udsPath = result.GetValue(optionUnixDomainSocket);
     var port = result.GetValue(optionPort);
+    if (udsPath is not null)
+    {
+        server.ConfigureBuilder(builder =>
+        {
+#pragma warning disable ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
+            var logger = builder.Logging.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+#pragma warning restore ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.ListenUnixSocket(udsPath, listenOptions =>
+                {
+                    var protocols = result.GetValue(optionProtocolVersion) ?? HttpProtocols.Http1;
+                    logger.LogInformation("Configuring server on Unix Domain Socket ({Path}) (Protocol: {Protocol})", udsPath, protocols);
+                    listenOptions.Protocols = protocols;
+                    listenOptions.UseConnectionState();
+                });
+
+                // hyperlocal uses the 'unix' scheme and passes the URI to hyper. As a result, the ':scheme' header in the request is set to 'unix'.
+                // By default, Kestrel does not accept non-HTTP schemes. To allow non-HTTP schemes, we need to set 'AllowAlternateSchemes' to true.
+                options.AllowAlternateSchemes = true;  
+            });
+        });
+    }
+    
     if (port is not null)
     {
         server.ConfigureBuilder(builder =>
