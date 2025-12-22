@@ -63,6 +63,8 @@ The server exposes the following endpoints:
   - Generates `size` random bytes using `Random.Shared` and returns them as `application/octet-stream`.
 - `/error-reset` (GET, HTTP/2 only)
   - Uses `IHttpResetFeature` to send an HTTP/2 stream reset with error code `2` (`INTERNAL_ERROR`) and then returns an empty result.
+- `/connection-state/active-connections`
+    - Returns the current status of active connections
 
 ## Certificates
 The server uses a self-signed certificate. You can obtain this certificate from the repository or by accessing `/_certs/localhost.{crt,key,pfx}`.
