@@ -3,6 +3,6 @@
     <File Path=".gitignore" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="src/HttpClientTestServer.Launcher.Container/HttpClientTestServer.Launcher.Container.csproj" Id="629914e4-f8b9-4739-bf18-cefcd27008ad" />
   <Project Path="src/HttpClientTestServer/HttpClientTestServer.csproj" />
-  <Project Path="src\HttpClientTestServer.Launcher.Container\HttpClientTestServer.Launcher.Container.csproj" Id="629914e4-f8b9-4739-bf18-cefcd27008ad" />
 </Solution>

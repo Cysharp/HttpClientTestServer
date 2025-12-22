@@ -1,3 +1,4 @@
+using HttpClientTestServer.ConnectionState;
 using System.Text.Json.Serialization;
 
 namespace HttpClientTestServer;
@@ -33,4 +34,5 @@ namespace HttpClientTestServer;
 [JsonSerializable(typeof(double))]
 [JsonSerializable(typeof(float?))]
 [JsonSerializable(typeof(double?))]
+[JsonSerializable(typeof(ActiveConnectionsResponse))]
 public partial class HttpClientTestServerJsonSerializerContext : JsonSerializerContext;

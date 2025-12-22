@@ -1,15 +1,17 @@
-﻿namespace HttpClientTestServer.ConnectionState;
+namespace HttpClientTestServer.ConnectionState;
 
 public static class ConnectionStateWebApplicationExtensions
 {
     public static void MapConnectionState(this WebApplication app)
     {
-        app.MapGet("/connection-state/active-connections", (ConnectionStateService state) =>
+        app.MapGet("/connection-state/active-connections", (HttpContext httpContext, ConnectionStateService state) =>
         {
-            return $"""
-                    activeConnections = {state.ActiveConnections}
-                    activeConnectionIds = {string.Join(",", state.ActiveConnectionsById.Keys.ToArray())}
-                    """;
+            return new ActiveConnectionsResponse(
+                ActiveConnections: state.ActiveConnections,
+                ActiveConnectionIds: state.ActiveConnectionsById.Keys.ToArray(),
+                CurrentConnectionId: httpContext.Connection.Id
+            );
         });
     }
 }
+public record ActiveConnectionsResponse(int ActiveConnections, string[] ActiveConnectionIds, string CurrentConnectionId);
