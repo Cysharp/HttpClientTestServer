@@ -31,7 +31,11 @@ public class ServerApplication : IAsyncDisposable
         {
             options.ConfigureHttpsDefaults(options =>
             {
+#if NET8_0
+                options.ServerCertificate = new X509Certificate2(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"));
+#else
                 options.ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"), null);
+#endif
             });
         });
     }
