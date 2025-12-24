@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using HttpClientTestServer.ConnectionState;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
@@ -68,7 +69,11 @@ public class InProcessTestServer : ITestServer
                 options.ConfigureHttpsDefaults(options =>
                 {
                     options.SslProtocols = sslProtocols;
-
+#if NET8_0
+                    options.ServerCertificate = new X509Certificate2(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"));
+#else
+                    options.ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"), null);
+#endif
                     if (testServerOptions.EnableClientCertificateValidation)
                     {
                         options.ClientCertificateMode = ClientCertificateMode.RequireCertificate;

@@ -25,21 +25,6 @@ public class ServerApplication : IAsyncDisposable
         builder = WebApplication.CreateSlimBuilder(args);
     }
 
-    private void ConfigureKestrelDefaults()
-    {
-        builder.WebHost.ConfigureKestrel(options =>
-        {
-            options.ConfigureHttpsDefaults(options =>
-            {
-#if NET8_0
-                options.ServerCertificate = new X509Certificate2(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"));
-#else
-                options.ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"), null);
-#endif
-            });
-        });
-    }
-
     private void ConfigureBuilderDefaults()
     {
         builder.Services.AddConnectionState();
@@ -101,7 +86,6 @@ public class ServerApplication : IAsyncDisposable
     public async Task StartAsync()
     {
         ConfigureBuilderDefaults();
-        ConfigureKestrelDefaults();
 
         foreach (var c in _configureBuilders)
         {
