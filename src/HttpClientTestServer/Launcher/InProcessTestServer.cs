@@ -139,16 +139,17 @@ public record TestServerOptions(HttpProtocols HttpProtocols, bool IsSecure)
 
     public static TestServerOptions CreateFromListenMode(TestServerListenMode listenMode)
     {
-        var httpProtocols = listenMode switch
+        var (httpProtocols, isSecure) = listenMode switch
         {
-            TestServerListenMode.InsecureHttp1Only => HttpProtocols.Http1,
-            TestServerListenMode.InsecureHttp2Only => HttpProtocols.Http2,
-            TestServerListenMode.SecureHttp1Only => HttpProtocols.Http1,
-            TestServerListenMode.SecureHttp2Only => HttpProtocols.Http2,
-            TestServerListenMode.SecureHttp1AndHttp2 => HttpProtocols.Http1AndHttp2,
+            TestServerListenMode.InsecureHttp1Only => (HttpProtocols.Http1, false),
+            TestServerListenMode.InsecureHttp2Only => (HttpProtocols.Http2, false),
+            TestServerListenMode.SecureHttp1Only => (HttpProtocols.Http1, true),
+            TestServerListenMode.SecureHttp2Only => (HttpProtocols.Http2, true),
+            TestServerListenMode.SecureHttp1AndHttp2 => (HttpProtocols.Http1AndHttp2, true),
             _ => throw new NotSupportedException(),
         };
-        return new TestServerOptions(httpProtocols, listenMode is not TestServerListenMode.InsecureHttp1Only and TestServerListenMode.InsecureHttp2Only);
+        
+        return new TestServerOptions(httpProtocols, isSecure);
     }
 }
 
