@@ -46,7 +46,7 @@ namespace HttpClientTestServer.Launcher
             };
         }
 
-        private TestServerOptions With(Action<TestServerOptions> configure)
+        public TestServerOptions With(Action<TestServerOptions> configure)
         {
             var clone = Clone();
             configure(clone);
