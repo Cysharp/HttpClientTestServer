@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Authentication;
+using HttpClientTestServer;
 using HttpClientTestServer.Launcher;
 
 if (!TryConfigureFromCommandLine(args, out var serverOptions))
@@ -16,7 +16,7 @@ await server.Stopped;
 static bool TryConfigureFromCommandLine(string[] args, [NotNullWhen(true)] out TestServerOptions? serverOptions)
 {
     var rootCommand = new RootCommand();
-    var optionProtocolVersion = new Option<HttpProtocols?>("--protocol") { Description = "HTTP protocol version" };
+    var optionProtocolVersion = new Option<ListenHttpProtocols?>("--protocol") { Description = "HTTP protocol version" };
     var optionPort = new Option<int?>("--port", "-p") { Description = "Port number" };
     var optionSecure = new Option<bool>("--secure", "-s") { Description = "Enable HTTPS" };
     var optionTlsVersion = new Option<SslProtocols?>("--tls") { Description = "TLS version (Default setting is None. None means the OS chooses the best protocol.)" };
@@ -39,7 +39,7 @@ static bool TryConfigureFromCommandLine(string[] args, [NotNullWhen(true)] out T
     var udsPath = result.GetValue(optionUnixDomainSocket);
     var port = result.GetValue(optionPort) ?? 8080;
     var isSecure = result.GetValue(optionSecure);
-    var protocols = result.GetValue(optionProtocolVersion) ?? (isSecure ? HttpProtocols.Http1AndHttp2 : HttpProtocols.Http1);
+    var protocols = result.GetValue(optionProtocolVersion) ?? (isSecure ? ListenHttpProtocols.Http1AndHttp2 : ListenHttpProtocols.Http1);
     var sslProtocols = result.GetValue(optionTlsVersion);
     var enableClientCertificateValidation = result.GetValue(optionEnableClientCertificateValidation) ?? false;
 

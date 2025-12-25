@@ -31,4 +31,8 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HttpClientTestServer.Abstractions\HttpClientTestServer.Abstractions.csproj" />
+  </ItemGroup>
 </Project>

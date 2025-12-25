@@ -28,7 +28,7 @@ public class InProcessTestServer : ITestServer
         _listeningOnUnixDomainSocket = testServerOptions.UnixDomainSocketPath != null;
         _server = new ServerApplication([]);
 
-        var protocols = testServerOptions.HttpProtocols;
+        var protocols = (HttpProtocols)testServerOptions.HttpProtocols;
         var sslProtocols = testServerOptions.SslProtocols ?? SslProtocols.Tls13;
 
         _server.ConfigureBuilder(builder =>
@@ -130,13 +130,4 @@ public class InProcessTestServer : ITestServer
     {
         return _server.DisposeAsync();
     }
-}
-
-public enum TestServerListenMode
-{
-    InsecureHttp1Only,
-    InsecureHttp2Only,
-    SecureHttp1Only,
-    SecureHttp2Only,
-    SecureHttp1AndHttp2,
 }
