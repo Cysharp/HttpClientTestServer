@@ -1,4 +1,4 @@
-using HttpClientTestServer.ConnectionState;
+﻿using HttpClientTestServer.ConnectionState;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using System.Diagnostics;
@@ -29,7 +29,7 @@ public class InProcessTestServer : ITestServer
         _server = new ServerApplication([]);
 
         var protocols = (HttpProtocols)testServerOptions.HttpProtocols;
-        var sslProtocols = testServerOptions.SslProtocols ?? SslProtocols.Tls13;
+        var sslProtocols = testServerOptions.SslProtocols ?? SslProtocols.None;
 
         _server.ConfigureBuilder(builder =>
         {
