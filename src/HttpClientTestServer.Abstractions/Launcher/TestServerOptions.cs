@@ -33,6 +33,25 @@ namespace HttpClientTestServer.Launcher
 
             return new TestServerOptions(httpProtocols, isSecure);
         }
+
+        private TestServerOptions Clone()
+        {
+            return new TestServerOptions(HttpProtocols, IsSecure)
+            {
+                SslProtocols = SslProtocols,
+                UnixDomainSocketPath = UnixDomainSocketPath,
+                Port = Port,
+                LocalhostOnly = LocalhostOnly,
+                EnableClientCertificateValidation = EnableClientCertificateValidation,
+            };
+        }
+
+        private TestServerOptions With(Action<TestServerOptions> configure)
+        {
+            var clone = Clone();
+            configure(clone);
+            return clone;
+        }
     }
 
     public enum TestServerListenMode
