@@ -27,6 +27,7 @@ static bool TryConfigureFromCommandLine(string[] args, [NotNullWhen(true)] out T
     rootCommand.Options.Add(optionSecure);
     rootCommand.Options.Add(optionTlsVersion);
     rootCommand.Options.Add(optionUnixDomainSocket);
+    rootCommand.Options.Add(optionEnableClientCertificateValidation);
 
     var result = rootCommand.Parse(args);
     if (result.Action is not null)
