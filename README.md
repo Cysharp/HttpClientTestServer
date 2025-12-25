@@ -12,7 +12,7 @@ docker run --rm -it -p 8080:80 ghcr.io/cysharp/httpclienttestserver:main --port 
 - `--port <port>`: Port to listen on (default: 80)
 - `--protocol <Http1|Http2|Http1AndHttp2>`: Protocol to support (default: Http1AndHttp2)
 - `--secure`: Enable HTTPS (default: false)
-- `--tls <None|Tls12|Tls13>`: TLS protocol version to use (default: Tls13)
+- `--tls <None|Tls12|Tls13>`: TLS protocol version to use (default: None(Auto))
 - `--uds <path>`: Unix Domain Socket path to listen on (default: none)
 - `--enable-client-cert-validation`: Enable client certificate validation (default: false)
 
