@@ -1,9 +1,9 @@
-using System.Diagnostics;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using HttpClientTestServer.ConnectionState;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
+using System.Diagnostics;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 
 namespace HttpClientTestServer.Launcher;
 
@@ -42,7 +42,7 @@ public class InProcessTestServer : ITestServer
                 if (testServerOptions.UnixDomainSocketPath is { } unixDomainSocketPath)
                 {
                     logger.LogInformation("Configuring server on Unix Domain Socket ({Path}) (Protocol: {Protocol})", unixDomainSocketPath, protocols);
-                    
+
                     options.ListenUnixSocket(unixDomainSocketPath, listenOptions =>
                     {
                         listenOptions.Protocols = protocols;
@@ -65,26 +65,8 @@ public class InProcessTestServer : ITestServer
                         options.ListenAnyIP(Port, ConfigureHttpListenOptions);
                     }
                 }
-                
-                options.ConfigureHttpsDefaults(options =>
-                {
-                    options.SslProtocols = sslProtocols;
-#if NET8_0
-                    options.ServerCertificate = new X509Certificate2(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"));
-#else
-                    options.ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"), null);
-#endif
-                    if (testServerOptions.EnableClientCertificateValidation)
-                    {
-                        options.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
-                        options.ClientCertificateValidation = (certificate2, chain, policyError) =>
-                        {
-                            return certificate2.Subject == "CN=client.example.com";
-                        };
-                    }
-                });
             });
-            
+
             if (loggerProvider is not null)
             {
                 if (Debugger.IsAttached)
@@ -101,7 +83,23 @@ public class InProcessTestServer : ITestServer
 
             if (IsSecure)
             {
-                listenOptions.UseHttps();
+                listenOptions.UseHttps(httpsOptions =>
+                {
+                    httpsOptions.SslProtocols = sslProtocols;
+#if NET8_0
+                    httpsOptions.ServerCertificate = new X509Certificate2(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"));
+#else
+                    httpsOptions.ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(Path.Combine(AppContext.BaseDirectory, "Certificates", "localhost.pfx"), null);
+#endif
+                    if (testServerOptions.EnableClientCertificateValidation)
+                    {
+                        httpsOptions.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
+                        httpsOptions.ClientCertificateValidation = (certificate2, chain, policyError) =>
+                        {
+                            return certificate2.Subject == "CN=client.example.com";
+                        };
+                    }
+                });
             }
 
             listenOptions.UseConnectionState();
@@ -131,30 +129,6 @@ public class InProcessTestServer : ITestServer
     public ValueTask DisposeAsync()
     {
         return _server.DisposeAsync();
-    }
-}
-
-public record TestServerOptions(HttpProtocols HttpProtocols, bool IsSecure)
-{
-    public SslProtocols? SslProtocols { get; init; }
-    public string? UnixDomainSocketPath { get; init; }
-    public int? Port { get; init; }
-    public bool LocalhostOnly { get; init; } = true;
-    public bool EnableClientCertificateValidation { get; init; } = false;
-
-    public static TestServerOptions CreateFromListenMode(TestServerListenMode listenMode)
-    {
-        var (httpProtocols, isSecure) = listenMode switch
-        {
-            TestServerListenMode.InsecureHttp1Only => (HttpProtocols.Http1, false),
-            TestServerListenMode.InsecureHttp2Only => (HttpProtocols.Http2, false),
-            TestServerListenMode.SecureHttp1Only => (HttpProtocols.Http1, true),
-            TestServerListenMode.SecureHttp2Only => (HttpProtocols.Http2, true),
-            TestServerListenMode.SecureHttp1AndHttp2 => (HttpProtocols.Http1AndHttp2, true),
-            _ => throw new NotSupportedException(),
-        };
-        
-        return new TestServerOptions(httpProtocols, isSecure);
     }
 }
 
