@@ -56,7 +56,7 @@ namespace HttpClientTestServer.Launcher
                     }
                     .Concat(IsSecure ? new []{ "--secure" } : Array.Empty<string>())
                     .Concat(_listeningOnUnixDomainSocket ? new []{ "--uds", options.UnixDomainSocketPath ?? "" } : Array.Empty<string>())
-                    .Concat(options.EnableClientCertificateValidation ? new []{ "--enable-client-certificate-validation" } : Array.Empty<string>())
+                    .Concat(options.EnableClientCertificateValidation ? new []{ "--enable-client-cert-validation" } : Array.Empty<string>())
                     .ToArray()
                 )
                 .WithPortBinding(Port, 80)
